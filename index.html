@@ -1,92 +1,95 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Interactive Card - GitHub Pages</title>
+    <title>3D Card: Auto-Rotate & Interact</title>
     <style>
-        /* 1. Thiết lập nền tảng */
+        :root {
+            --glitch-rainbow: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            --bg-clr: #111;
+            --card-bg: #222;
+        }
+
         body {
             margin: 0;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #1a1a1a;
+            background: var(--bg-clr);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
+            touch-action: none; /* Ngăn trình duyệt cuộn trang */
         }
 
-        /* 2. Khung chứa (Perspective) */
         .container {
-            perspective: 1000px;
+            perspective: 1500px;
         }
 
-        /* 3. Thẻ Card chính */
+        /* Yêu cầu 1: Card chuyển thành card ngang (width > height) */
         .card {
             width: 320px;
-            height: 450px;
-            background: #2a2a2a;
-            border-radius: 25px;
+            height: 200px;
+            background: var(--card-bg);
+            border-radius: 15px;
             position: relative;
             transform-style: preserve-3d;
-            transition: transform 0.1s ease;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             color: white;
-            border: 1px solid rgba(255,255,255,0.1);
-            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.05);
+            
+            /* Logic chuyển động: mượt mà khi tương tác, 
+               nhưng khi tự xoay chúng ta sẽ điều khiển qua JS */
+            transition: transform 0.1s ease-out; 
         }
 
-        /* Hiệu ứng bóng đổ động */
-        .card::before {
-            content: "";
+        /* Yêu cầu 4: Bo góc mượt và hiệu ứng viền cho điện thoại */
+        .card-border {
             position: absolute;
-            inset: 0;
-            border-radius: 25px;
-            background: radial-gradient(circle at var(--x) var(--y), rgba(255,255,255,0.15) 0%, transparent 60%);
-            z-index: 3;
+            inset: -2px;
+            background: var(--glitch-rainbow);
+            background-size: 200%;
+            border-radius: 17px;
+            z-index: -1;
+            filter: blur(5px);
+            opacity: 0.6;
+            animation: moveGradient 3s linear infinite;
         }
 
-        /* 4. Các lớp nội dung (Parallax) */
-        .circle {
-            width: 150px;
-            height: 150px;
-            background: linear-gradient(45deg, #00f2fe, #4facfe);
-            border-radius: 50%;
-            position: absolute;
-            top: 50px;
-            transform: translateZ(60px); /* Đẩy cao nhất */
-            box-shadow: 0 0 30px rgba(79, 172, 254, 0.5);
+        @keyframes moveGradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
         }
 
-        .info {
-            transform: translateZ(40px); /* Đẩy vừa phải */
+        /* Các thành phần Parallax bên trong */
+        .card-content {
+            transform: translateZ(50px); /* Nổi lên cao nhất */
             text-align: center;
-            margin-top: 150px;
             padding: 20px;
         }
 
-        h2 { margin: 0; font-size: 2rem; text-transform: uppercase; }
-        p { opacity: 0.7; font-size: 0.9rem; line-height: 1.5; }
+        h2 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
+        p { opacity: 0.7; font-size: 0.8rem; line-height: 1.4; margin: 10px 0; }
 
         .btn {
-            margin-top: 20px;
-            padding: 10px 25px;
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 20px;
             background: white;
             color: black;
             border-radius: 50px;
-            font-weight: bold;
             text-decoration: none;
-            transform: translateZ(80px); /* Nút bấm nổi hẳn lên */
-            transition: 0.3s;
+            font-weight: bold;
+            font-size: 0.8rem;
+            transform: translateZ(30px); /* Nổi vừa phải */
+            transition: background 0.3s;
         }
-
-        .btn:hover { background: #4facfe; color: white; }
+        .btn:hover { background: #ff0000; color: white; }
 
     </style>
 </head>
@@ -94,47 +97,103 @@
 
     <div class="container">
         <div class="card" id="card">
-            <div class="circle"></div>
-            <div class="info">
-                <h2>GEMINI 3D</h2>
-                <p>Di chuyển chuột quanh thẻ để cảm nhận độ sâu và hiệu ứng ánh sáng động.</p>
+            <div class="card-border"></div>
+            <div class="card-content">
+                <h2>WEB 3D CARD</h2>
+                <p>Tự xoay. Tương tác mượt mà.<br>Dừng xoay khi chạm, chạy tiếp sau 3 giây.</p>
+                <a href="#" class="btn">KHÁM PHÁ</a>
             </div>
-            <a href="#" class="btn">KHÁM PHÁ</a>
         </div>
     </div>
 
     <script>
         const card = document.getElementById('card');
         const container = document.querySelector('.container');
+        
+        let autoRotateTimer;
+        let isInteracting = false;
+        let rotateAngle = 0; // Trạng thái góc xoay tự động
 
-        // Hiệu ứng xoay theo chuột
-        container.addEventListener('mousemove', (e) => {
+        // --- Yêu cầu 2: Card tự động xoay ---
+        function startAutoRotate() {
+            if (isInteracting) return;
+            card.style.transition = 'transform 0.1s linear'; // Xoay linear cho mượt
+            autoRotateTimer = setInterval(() => {
+                rotateAngle += 0.5; // Tốc độ xoay
+                if (rotateAngle >= 360) rotateAngle = 0;
+                card.style.transform = `rotateY(${rotateAngle}deg)`;
+            }, 20); // 50 frame/s
+        }
+
+        function stopAutoRotate() {
+            clearInterval(autoRotateTimer);
+            // Giữ nguyên góc xoay hiện tại để khi tương tác không bị giật
+            card.style.transition = 'transform 0.1s ease-out';
+        }
+
+        // --- Yêu cầu 3 & 4: Tương tác trên điện thoại ---
+        function handleMove(e) {
+            isInteracting = true;
+            stopAutoRotate(); // Dừng tự xoay khi có tương tác
+
+            let clientX, clientY;
+            if (e.type === 'touchmove') {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
             const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
             
-            // Tính toán góc quay (giới hạn trong khoảng -20 đến 20 độ)
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
-            const rotateX = (centerY - y) / 10;
-            const rotateY = (x - centerX) / 10;
+            
+            // Giới hạn góc nghiêng để card không bị lật úp
+            const rotateX = Math.max(-15, Math.min(15, (centerY - y) / 5));
+            const rotateY = Math.max(-20, Math.min(20, (x - centerX) / 5));
 
             card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-            
-            // Cập nhật vị trí ánh sáng (Spotlight)
-            card.style.setProperty('--x', `${x}px`);
-            card.style.setProperty('--y', `${y}px`);
-        });
+        }
 
-        // Reset khi chuột rời đi
-        container.addEventListener('mouseleave', () => {
-            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-            card.style.transition = "all 0.5s ease";
-        });
+        // Khi kết thúc tương tác
+        function handleEnd() {
+            isInteracting = false;
+            card.style.transform = `rotateX(0deg) rotateY(0deg)`; // Reset góc nghiêng
+            card.style.transition = 'transform 0.5s ease'; // Hiệu ứng trả về mượt
 
-        container.addEventListener('mouseenter', () => {
-            card.style.transition = "none";
-        });
+            // Chờ 3 giây trước khi tự xoay tiếp
+            setTimeout(() => {
+                if (!isInteracting) {
+                    // Reset lại góc xoay tự động từ 0 hoặc giữ góc hiện tại
+                    rotateAngle = 0; 
+                    startAutoRotate();
+                }
+            }, 3000); 
+        }
+
+        function handleStart() {
+            isInteracting = true;
+            stopAutoRotate();
+            card.style.transition = 'none'; // Tương tác tức thì
+        }
+
+        // --- Gắn sự kiện ---
+        // Cho máy tính
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseleave', handleEnd);
+        
+        // Cho điện thoại (Touch)
+        document.addEventListener('touchstart', handleStart);
+        document.addEventListener('touchmove', handleMove);
+        document.addEventListener('touchend', handleEnd);
+
+        // Khởi chạy
+        startAutoRotate();
+
     </script>
 </body>
 </html>
