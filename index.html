@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate 3D Card - Smooth Rotation</title>
+    <title>3D Card Mirror Effect</title>
     <style>
         body {
             margin: 0;
@@ -11,8 +11,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #0a0a0a;
-            font-family: sans-serif;
+            background: #0f0f0f;
+            font-family: 'Inter', sans-serif;
             overflow: hidden;
             touch-action: none;
         }
@@ -25,43 +25,61 @@
         }
 
         .card {
-            width: 320px;
-            height: 200px;
-            background: #1a1a1a;
+            width: 340px;
+            height: 210px;
             border-radius: 16px;
             position: relative;
             transform-style: preserve-3d;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            justify-content: flex-end; /* Đẩy chữ xuống dưới */
+            padding: 20px;
             color: white;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
             border: 1px solid rgba(255,255,255,0.1);
-            /* Không dùng transition ở đây để tránh bị giật khi JS can thiệp */
-            will-change: transform; 
+            will-change: transform;
+            
+            /* CHÈN ẢNH THẺ TẠI ĐÂY */
+            background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop'); 
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
         }
 
-        /* Viền sáng neon */
-        .card::before {
-            content: "";
+        /* Lớp phủ hiệu ứng ánh sáng (Light Reflection) */
+        .shine {
             position: absolute;
-            inset: -2px;
-            background: linear-gradient(90deg, #00f2fe, #4facfe, #00f2fe);
-            background-size: 200%;
-            border-radius: 18px;
-            z-index: -1;
-            opacity: 0.4;
-        }
-
-        .content {
-            transform: translateZ(40px);
-            text-align: center;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(255,255,255,0) 0%,
+                rgba(255,255,255,0) 45%,
+                rgba(255,255,255,0.2) 50%,
+                rgba(255,255,255,0) 55%,
+                rgba(255,255,255,0) 100%
+            );
+            background-size: 250% 250%;
+            z-index: 2;
             pointer-events: none;
         }
 
-        h2 { font-size: 1.4rem; letter-spacing: 3px; margin: 0; color: #4facfe; }
-        p { font-size: 0.8rem; opacity: 0.6; margin-top: 10px; }
+        /* Lớp phủ tối để text rõ hơn */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 3;
+            transform: translateZ(50px);
+            text-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        h2 { font-size: 1.2rem; margin: 0; letter-spacing: 2px; }
+        p { font-size: 0.7rem; opacity: 0.8; margin: 5px 0 0; }
 
     </style>
 </head>
@@ -69,81 +87,77 @@
 
     <div class="container">
         <div class="card" id="card">
+            <div class="shine" id="shine"></div>
+            <div class="overlay"></div>
             <div class="content">
-                <h2>PREMIUM CARD</h2>
-                <p>Vuốt mạnh để xoay vòng tròn<br>Tự động chạy sau 3s im lặng</p>
+                <h2>PREMIUM MEMBER</h2>
+                <p>NID: 241207-BLIP</p>
             </div>
         </div>
     </div>
 
     <script>
         const card = document.getElementById('card');
+        const shine = document.getElementById('shine');
         
         let targetRotateY = 0;
         let currentRotateY = 0;
-        let lastMouseX = 0;
+        let lastX = 0;
         let isDragging = false;
-        let autoRotateActive = true;
-        let lastInteractTime = Date.now();
+        let autoRotate = true;
+        let lastTime = Date.now();
 
-        // 1. Vòng lặp hoạt ảnh (Mượt hơn setInterval)
         function update() {
             const now = Date.now();
             
-            // Kiểm tra thời gian nghỉ để bật lại tự động xoay
-            if (!isDragging && now - lastInteractTime > 3000) {
-                autoRotateActive = true;
+            if (!isDragging && now - lastTime > 3000) {
+                autoRotate = true;
             }
 
-            if (autoRotateActive && !isDragging) {
-                targetRotateY += 0.8; // Tốc độ tự quay
+            if (autoRotate && !isDragging) {
+                targetRotateY += 0.6; 
             }
 
-            // Nội suy (Lerp) giúp chuyển động mượt, không bị khựng
+            // Lerp mượt mà
             currentRotateY += (targetRotateY - currentRotateY) * 0.1;
             
-            card.style.transform = `rotateY(${currentRotateY}deg) rotateX(5deg)`;
+            card.style.transform = `rotateY(${currentRotateY}deg) rotateX(10deg)`;
+
+            // Cập nhật vị trí ánh sáng dựa trên góc quay
+            // Khi thẻ quay, vệt sáng sẽ chạy ngang bề mặt
+            const shinePos = (currentRotateY % 360) / 1.5; 
+            shine.style.backgroundPosition = `${shinePos}%`;
 
             requestAnimationFrame(update);
         }
 
-        // 2. Xử lý tương tác (Vuốt cùng chiều tay)
         function onStart(e) {
             isDragging = true;
-            autoRotateActive = false;
-            lastInteractTime = now = Date.now();
-            lastMouseX = e.touches ? e.touches[0].clientX : e.clientX;
+            autoRotate = false;
+            lastTime = Date.now();
+            lastX = e.touches ? e.touches[0].clientX : e.clientX;
         }
 
         function onMove(e) {
             if (!isDragging) return;
+            const x = e.touches ? e.touches[0].clientX : e.clientX;
+            const deltaX = x - lastX;
             
-            const currentX = e.touches ? e.touches[0].clientX : e.clientX;
-            const deltaX = currentX - lastMouseX;
+            targetRotateY += deltaX * 0.6; // Vuốt cùng chiều tay
             
-            // Cộng dồn góc xoay theo hướng di chuyển của tay
-            // Giảm chia (ví dụ / 2) để nhạy hơn hoặc tăng để đầm hơn
-            targetRotateY += deltaX * 0.5; 
-            
-            lastMouseX = currentX;
-            lastInteractTime = Date.now();
+            lastX = x;
+            lastTime = Date.now();
         }
 
-        function onEnd() {
-            isDragging = false;
-        }
+        function onEnd() { isDragging = false; }
 
-        // Sự kiện chuột
         window.addEventListener('mousedown', onStart);
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onEnd);
-
-        // Sự kiện điện thoại
         window.addEventListener('touchstart', onStart);
         window.addEventListener('touchmove', onMove);
         window.addEventListener('touchend', onEnd);
 
-        // Chạy vòng lặp
         update();
     </script>
 </body>
