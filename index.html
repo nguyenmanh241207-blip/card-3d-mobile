@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Interactive Card - GitHub Pages</title>
+    <style>
+        /* 1. Thiết lập nền tảng */
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1a1a1a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        /* 2. Khung chứa (Perspective) */
+        .container {
+            perspective: 1000px;
+        }
+
+        /* 3. Thẻ Card chính */
+        .card {
+            width: 320px;
+            height: 450px;
+            background: #2a2a2a;
+            border-radius: 25px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+        }
+
+        /* Hiệu ứng bóng đổ động */
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 25px;
+            background: radial-gradient(circle at var(--x) var(--y), rgba(255,255,255,0.15) 0%, transparent 60%);
+            z-index: 3;
+        }
+
+        /* 4. Các lớp nội dung (Parallax) */
+        .circle {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(45deg, #00f2fe, #4facfe);
+            border-radius: 50%;
+            position: absolute;
+            top: 50px;
+            transform: translateZ(60px); /* Đẩy cao nhất */
+            box-shadow: 0 0 30px rgba(79, 172, 254, 0.5);
+        }
+
+        .info {
+            transform: translateZ(40px); /* Đẩy vừa phải */
+            text-align: center;
+            margin-top: 150px;
+            padding: 20px;
+        }
+
+        h2 { margin: 0; font-size: 2rem; text-transform: uppercase; }
+        p { opacity: 0.7; font-size: 0.9rem; line-height: 1.5; }
+
+        .btn {
+            margin-top: 20px;
+            padding: 10px 25px;
+            background: white;
+            color: black;
+            border-radius: 50px;
+            font-weight: bold;
+            text-decoration: none;
+            transform: translateZ(80px); /* Nút bấm nổi hẳn lên */
+            transition: 0.3s;
+        }
+
+        .btn:hover { background: #4facfe; color: white; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card" id="card">
+            <div class="circle"></div>
+            <div class="info">
+                <h2>GEMINI 3D</h2>
+                <p>Di chuyển chuột quanh thẻ để cảm nhận độ sâu và hiệu ứng ánh sáng động.</p>
+            </div>
+            <a href="#" class="btn">KHÁM PHÁ</a>
+        </div>
+    </div>
+
+    <script>
+        const card = document.getElementById('card');
+        const container = document.querySelector('.container');
+
+        // Hiệu ứng xoay theo chuột
+        container.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Tính toán góc quay (giới hạn trong khoảng -20 đến 20 độ)
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = (centerY - y) / 10;
+            const rotateY = (x - centerX) / 10;
+
+            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            
+            // Cập nhật vị trí ánh sáng (Spotlight)
+            card.style.setProperty('--x', `${x}px`);
+            card.style.setProperty('--y', `${y}px`);
+        });
+
+        // Reset khi chuột rời đi
+        container.addEventListener('mouseleave', () => {
+            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+            card.style.transition = "all 0.5s ease";
+        });
+
+        container.addEventListener('mouseenter', () => {
+            card.style.transition = "none";
+        });
+    </script>
+</body>
+</html>
